@@ -69,7 +69,7 @@ export bodyToNumberedLines = pipe(
   List.mapWithIndex((x, i) => #[i, x]),
 )
 
-runBodyValidation = (state, body, vals) => {
+export runBodyValidation = (state, body, vals) => {
   validate = (passing, list) => where(list) {
     [] =>
       true
@@ -99,10 +99,21 @@ bodyChecker = (state, rules) => map(
   )(rules),
 )
 
+accumulate = (fn, list) => {
+  stepper = (input, out) => where(input) {
+    [] =>
+      out
+
+    [a, ...z] =>
+      stepper(z, [...out, fn(a)])
+  }
+  return stepper(list, [])
+}
+
 modifyBodyByRules :: List (Rule a) -> a -> String -> List VFileLine
 modifyBodyByRules = (rules, state, body) => pipe(
   bodyToNumberedLines,
-  List.reduce((agg, lineTuple) => List.append(Line.processRules(rules, state, lineTuple), agg), []),
+  accumulate(Line.processRules(rules, state)),
 )(body)
 
 vfileWithState :: String -> List (Rule a) -> a -> Wish VFileError (ConcreteFile (List VFileLine))
