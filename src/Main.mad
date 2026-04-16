@@ -49,7 +49,7 @@ main = () => {
         [
           Rule.LineValidator(
             (meta, lineNum, line) => IO.pTrace(
-              "checking line for headmarker!",
+              "checking line for headmarker! " ++ show(lineNum),
               !Fn.equals("---", line),
             ),
           ),

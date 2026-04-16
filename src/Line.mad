@@ -18,9 +18,9 @@ import Rule from "@/Rule"
 
 
 
-alias LoopState = { done :: Boolean, failReason :: Maybe VFileError, valid :: Boolean }
+export alias LoopState = { done :: Boolean, failReason :: Maybe VFileError, valid :: Boolean }
 
-type VFileLine = InvalidLine(Integer, VFileError) | ValidLine(Integer, String)
+export type VFileLine = InvalidLine(Integer, VFileError) | ValidLine(Integer, String)
 // invalid line: line number, rule id, specific fail reason
 // valid line: line number, raw
 

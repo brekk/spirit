@@ -2,6 +2,7 @@ import type { Maybe } from "Maybe"
 import type { Wish } from "Wish"
 
 import type { VFileError } from "@/Errors"
+import type { VFileLine } from "@/Line"
 import type { BodyTransformer, BodyValidator, LineTransformer, LineValidator, Rule } from "@/Rule"
 
 import File from "File"
@@ -34,10 +35,6 @@ type ConcreteFile state
     // the metadata record
     state,
   )
-
-
-
-
 
 // the eventual set of helpers will likely be more complicated
 alias Internal = String
@@ -72,11 +69,19 @@ export bodyToNumberedLines = pipe(
   List.mapWithIndex((x, i) => #[i, x]),
 )
 
+runBodyValidation = (state, body, vals) => {
+  validate = (passing, list) => where(list) {
+    [] =>
+      true
 
-runBodyValidation = (state, body, vals) => pipe(
-  map(where { Rule.BodyValidator(fn) => fn }),
-  List.reduce((pass, checkWrap) => pass && checkWrap(state, body), true),
-)(vals)
+    [check, ...z] =>
+      passing && validate(check(state, body), z)
+  }
+  return pipe(
+    map(where { Rule.BodyValidator(fn) => fn }),
+    validate(true),
+  )(vals)
+}
 
 bodyChecker :: a -> List (Rule a) -> Wish VFileError String -> Wish VFileError #[Boolean, String]
 bodyChecker = (state, rules) => map(
@@ -94,11 +99,13 @@ bodyChecker = (state, rules) => map(
   )(rules),
 )
 
-modBod = (rules, state, body) => pipe(
+modifyBodyByRules :: List (Rule a) -> a -> String -> List VFileLine
+modifyBodyByRules = (rules, state, body) => pipe(
   bodyToNumberedLines,
   List.reduce((agg, lineTuple) => List.append(Line.processRules(rules, state, lineTuple), agg), []),
 )(body)
 
+vfileWithState :: String -> List (Rule a) -> a -> Wish VFileError (ConcreteFile (List VFileLine))
 export vfileWithState = (src, rules, state) => pipe(
   File.read,
   forceVFileError,
@@ -107,7 +114,7 @@ export vfileWithState = (src, rules, state) => pipe(
     where {
       #[valid, body] =>
         if (valid) {
-          Wish.good(ConcreteFile(src, body, modBod(rules, state, body)))
+          Wish.good(ConcreteFile(src, body, modifyBodyByRules(rules, state, body)))
         } else {
           Wish.bad(Errors.InvalidShape)
         }
