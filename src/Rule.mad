@@ -2,9 +2,11 @@ import Fn from "Function"
 
 
 
+alias NumberedLine = #[Integer, String]
+
 export type BodyValidator a = BodyValidator(a -> String -> Boolean)
-export type BodyTransformer a = BodyTransformer(a -> String -> String)
-export type BodyStateTransformer a = BodyStateTransformer(a -> String -> a)
+export type BodyTransformer a = BodyTransformer(a -> List NumberedLine -> List NumberedLine)
+export type BodyStateTransformer a = BodyStateTransformer(a -> List NumberedLine -> a)
 
 export type LineValidator a = LineValidator(a -> Integer -> String -> Boolean)
 export type LineTransformer a = LineTransformer(a -> Integer -> String -> String)
@@ -17,6 +19,8 @@ export type LineStateTransformer a = LineStateTransformer(a -> Integer -> String
 // export type Rule a = Rule(List (Validator a), List (Transformer a))
 
 alias Id = String
+
+// we need to eventually make rules "fixable"
 
 export type Rule a
   = BodyRule(Id, List (BodyValidator a), List (BodyTransformer a), List (BodyStateTransformer a))

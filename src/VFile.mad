@@ -3,7 +3,14 @@ import type { Wish } from "Wish"
 
 import type { VFileError } from "@/Errors"
 import type { VFileLine } from "@/Line"
-import type { BodyTransformer, BodyValidator, LineTransformer, LineValidator, Rule } from "@/Rule"
+import type {
+  BodyStateTransformer,
+  BodyTransformer,
+  BodyValidator,
+  LineTransformer,
+  LineValidator,
+  Rule,
+} from "@/Rule"
 
 import File from "File"
 import Path from "FilePath"
@@ -20,6 +27,8 @@ import { accumulate } from "@/List"
 import Rule from "@/Rule"
 
 
+
+alias NumberedLine = #[Integer, String]
 
 // a virtual file represents:
 
@@ -62,11 +71,14 @@ export type VirtualFile a
     List (Rule a),
   )
 
+
+bodyToNumberedLines :: String -> List NumberedLine
 export bodyToNumberedLines = pipe(
   String.lines,
   List.mapWithIndex((x, i) => #[i, x]),
 )
 
+runBodyValidation :: a -> String -> List (BodyValidator a) -> Boolean
 export runBodyValidation = (state, body, vals) => {
   validate = (passing, list) => where(list) {
     [] =>
@@ -95,9 +107,59 @@ export validateBody = (state, rules, body) => pipe(
   (valid) => #[valid, body],
 )(rules)
 
+processBodyRules :: a -> List (BodyTransformer a) -> List NumberedLine -> List NumberedLine
+processBodyRules = (state, transformers, body) => {
+  helper :: a -> List NumberedLine -> List (BodyTransformer a) -> List NumberedLine
+  helper = (meta, numBod, trs) => where(trs) {
+    [] =>
+      body
+
+    [a, ...rest] =>
+      where(a) {
+        Rule.BodyTransformer(fn) =>
+          helper(meta, fn(meta, numBod), rest)
+      }
+  }
+  return helper(state, body, transformers)
+}
+
+// processBodyStateRules :: a
+//   -> List (BodyStateTransformer a)
+//   -> List NumberedLine
+//   -> List NumberedLine
+processBodyStateRules = (state, transformers, body) => {
+  helper :: a -> List NumberedLine -> List (BodyStateTransformer a) -> List NumberedLine
+  helper = (meta, numBod, trs) => where(trs) {
+    [] =>
+      meta
+
+    [a, ...rest] =>
+      where(a) {
+        Rule.BodyStateTransformer(fn) =>
+          helper(meta, fn(meta, numBod), rest)
+      }
+  }
+  return helper(state, body, transformers)
+}
+
 modifyBodyByRules :: List (Rule a) -> a -> String -> List VFileLine
 export modifyBodyByRules = (rules, state, body) => pipe(
   bodyToNumberedLines,
+  processBodyRules(
+    state,
+    pipe(
+      List.filter(Rule.isBodyRule),
+      chain(
+        where {
+          Rule.BodyRule(_, _, trans, _) =>
+            trans
+
+          _ =>
+            []
+        },
+      ),
+    )(rules),
+  ),
   accumulate(Line.processRules(rules, state)),
 )(body)
 
