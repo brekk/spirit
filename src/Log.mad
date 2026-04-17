@@ -13,8 +13,8 @@ export TAGS = {
   main: tagWithScope("spirit", ["main"]),
   line: tagWithScope("spirit", ["line"]),
   lineR: tagWithScope("spirit", ["line", "rule"]),
-  lineRLine: tagWithScope("spirit", ["line", "rule", "line"]),
-  lineRBody: tagWithScope("spirit", ["line", "rule", "body"]),
+  lineRPass: tagWithScope("spirit", ["line", "rule", "pass"]),
+  lineRFail: tagWithScope("spirit", ["line", "rule", "fail"]),
 }
 
 export log = {
@@ -28,6 +28,6 @@ export log = {
   main: env(TAGS.main),
   line: env(TAGS.line),
   lineR: env(TAGS.lineR),
-  lineRLine: env(TAGS.lineRLine),
-  lineRBody: env(TAGS.lineRBody),
+  lineRPass: env(TAGS.lineRPass),
+  lineRFail: env(TAGS.lineRFail),
 }

@@ -34,7 +34,6 @@ type ConcreteFile state
   = ConcreteFile(
     // source path
     String,
-    // source sliced by newlines with index
     List VFileLine,
     // the metadata record
     state,
@@ -83,9 +82,7 @@ export runBodyValidation = (state, body, vals) => {
   }
   return pipe(
     List.filter(Rule.isBodyValidator),
-    log.vfileV("body validators"),
     map(where { Rule.BodyValidator(fn) => fn }),
-    log.vfileV("extracted validator function"),
     validate(true),
     log.vfileV("did pass"),
   )(vals)
@@ -157,8 +154,8 @@ export vfileWithState = (src, rules, state) => pipe(
           pipe(
             modifyBodyByRules(rules, state),
             where {
-              #[newState, newBod] =>
-                ConcreteFile(src, newBod, newState)
+              #[newState, ratifiedBod] =>
+                ConcreteFile(src, ratifiedBod, newState)
             },
             Wish.good,
           )(body)

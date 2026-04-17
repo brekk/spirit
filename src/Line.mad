@@ -20,7 +20,10 @@ import Rule from "@/Rule"
 
 export alias LoopState = { done :: Boolean, failReason :: Maybe VFileError, valid :: Boolean }
 
-export type VFileLine = InvalidLine(Integer, VFileError) | ValidLine(Integer, String)
+export type VFileLine
+  = InvalidLine(Integer, VFileError)
+  | ValidLine(Integer, String)
+  | EmptyLine(Integer)
 // invalid line: line number, rule id, specific fail reason
 // valid line: line number, raw
 
@@ -30,6 +33,9 @@ export getLineNumber = where {
     i
 
   ValidLine(i, _) =>
+    i
+
+  EmptyLine(i) =>
     i
 }
 
@@ -57,24 +63,23 @@ export transformLines = (meta, index, raw, trs) => {
   return helper(raw, trs)
 }
 
+validOrEmptyLine = (idx, x) => x == "" ? EmptyLine(idx) : ValidLine(idx, x)
+
 recursivelyProcessRules :: Integer -> String -> a -> LoopState -> List (Rule a) -> VFileLine
 recursivelyProcessRules = (index, line, state, loopState, rules) => if (
   loopState.done || hasNoRemainingLineRules(rules)
 ) {
   where(loopState.failReason) {
     Just(whyFail) =>
-      log.lineR(
-        "fail " ++ show(index),
-        (loopState.valid ? ValidLine(index, line) : InvalidLine(index, whyFail)),
-      )
+      (loopState.valid ? validOrEmptyLine(index, line) : InvalidLine(index, whyFail))
 
     _ =>
-      log.lineR("pass " ++ show(index), ValidLine(index, line))
+      validOrEmptyLine(index, line)
   }
 } else {
   where(rules) {
     [] =>
-      log.lineR("this is the bug", recursivelyProcessRules(index, line, state, loopState, []))
+      recursivelyProcessRules(index, line, state, loopState, [])
 
     [rule, ...rest] =>
       where(rule) {
@@ -84,21 +89,21 @@ recursivelyProcessRules = (index, line, state, loopState, rules) => if (
             valid = loopState.valid && lineValid
             failReason = !lineValid ? Just(Errors.DynamicError(id, index)) : loopState.failReason
             newLine = valid ? transformLines(state, index, line, transformers) : line
-            return recursivelyProcessRules(
-              index,
-              newLine,
-              state,
-              { ...loopState, valid, failReason },
-              rest,
+            return log.lineR(
+              id,
+              recursivelyProcessRules(
+                index,
+                newLine,
+                state,
+                { ...loopState, valid, failReason },
+                rest,
+              ),
             )
           }
 
         Rule.Rule(_, _, id, _, _) =>
-          log.lineRBody(
-            "skipped: " ++ id ++ " :: " ++ show(index),
-            // skip body rules, they get processed upstream
-            recursivelyProcessRules(index, line, state, loopState, rest),
-          )
+          // skip body rules, they get processed upstream
+          recursivelyProcessRules(index, line, state, loopState, rest)
       }
   }
 }
