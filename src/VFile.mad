@@ -108,17 +108,21 @@ export validateBody = (state, rules, body) => pipe(
 processBodyRules :: a -> List (Transformer a) -> List NumberedLine -> List NumberedLine
 processBodyRules = (state, transformers, body) => {
   helper :: a -> List NumberedLine -> List (Transformer a) -> List NumberedLine
-  helper = (meta, numBod, trs) => where(trs) {
+  helper = (newState, numBod, trs) => where(trs) {
     [] =>
       body
 
     [a, ...rest] =>
       where(a) {
         Rule.BodyTransformer(fn) =>
-          helper(meta, fn(meta, numBod), rest)
+          helper(newState, fn(newState, numBod), rest)
+
+        Rule.BodyStateTransformer(fn) =>
+          helper(fn(newState, numBod), numBod, rest)
 
         _ =>
-          helper(meta, numBod, rest)
+          // skip line transformers
+          helper(newState, numBod, rest)
       }
   }
   return helper(state, body, transformers)
