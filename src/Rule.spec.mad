@@ -11,33 +11,46 @@ HARNESS_VALIDATORS = [bodyVal]
 
 bodyTrans = Rule.BodyTransformer((meta, body) => body)
 lineTrans = Rule.LineTransformer((meta, index, line) => line)
+bodyStateTrans = Rule.BodyStateTransformer((meta, numBody) => meta)
+lineStateTrans = Rule.LineStateTransformer((meta, index, content) => meta)
 HARNESS_TRANSFORMERS = [bodyTrans]
 
 
-HARNESS = Rule.Rule(
-  Rule.BodyRule,
-  false,
-  "smoke-test",
-  HARNESS_VALIDATORS,
-  HARNESS_TRANSFORMERS,
-  [],
-)
+HARNESS = Rule.Rule(Rule.BodyRule, false, "smoke-test", HARNESS_VALIDATORS, HARNESS_TRANSFORMERS)
 
 report(Rule.affect, "affect", [#[HARNESS, Rule.BodyRule]])
 report(Rule.fixable, "fixable", [#[HARNESS, false]])
 report(Rule.id, "id", [#[HARNESS, "smoke-test"]])
 report(Rule.validators, "validators", [#[HARNESS, HARNESS_VALIDATORS]])
 report(Rule.transformers, "transformers", [#[HARNESS, HARNESS_TRANSFORMERS]])
-report(Rule.stateTransformers, "transformers", [#[HARNESS, []]])
 report(Rule.bodyValidators, "bodyValidators", [#[HARNESS, HARNESS_VALIDATORS]])
 report(Rule.lineValidators, "lineValidators", [#[HARNESS, []]])
 report(Rule.isBodyValidator, "isBodyValidator", [#[bodyVal, true], #[lineVal, false]])
 
 report(Rule.bodyTransformers, "bodyTransformers", [#[HARNESS, HARNESS_TRANSFORMERS]])
 report(Rule.lineTransformers, "lineTransformers", [#[HARNESS, []]])
-report(Rule.isBodyTransformer, "isBodyTransformer", [#[bodyTrans, true], #[lineTrans, false]])
-report(Rule.bodyStateTransformers, "bodyStateTransformers", [#[HARNESS, []]])
+report(
+  Rule.isBodyTransformer,
+  "isBodyTransformer",
+  [#[bodyTrans, true], #[lineTrans, false], #[bodyStateTrans, false], #[lineStateTrans, false]],
+)
+report(
+  Rule.isLineTransformer,
+  "isLineTransformer",
+  [#[bodyTrans, false], #[lineTrans, true], #[bodyStateTrans, false], #[lineStateTrans, false]],
+)
+report(
+  Rule.isBodyStateTransformer,
+  "isBodyStateTransformer",
+  [#[bodyTrans, false], #[lineTrans, false], #[bodyStateTrans, true], #[lineStateTrans, false]],
+)
+report(
+  Rule.isLineStateTransformer,
+  "isLineStateTransformer",
+  [#[bodyTrans, false], #[lineTrans, false], #[bodyStateTrans, false], #[lineStateTrans, true]],
+)
 report(Rule.lineStateTransformers, "lineStateTransformers", [#[HARNESS, []]])
+report(Rule.bodyStateTransformers, "bodyStateTransformers", [#[HARNESS, []]])
 
 
 report(Rule.isBodyRule, "isBodyRule", [#[HARNESS, true]])
