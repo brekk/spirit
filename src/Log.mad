@@ -4,6 +4,8 @@ import { env, tagWithScope } from "PartyBus"
 
 export TAGS = {
   vfile: tagWithScope("spirit", ["vfile"]),
+  vfileV: tagWithScope("spirit", ["vfile", "validation"]),
+  vfileT: tagWithScope("spirit", ["vfile", "transformer"]),
   rule: tagWithScope("spirit", ["rule"]),
   validator: tagWithScope("spirit", ["rule", "validator"]),
   transformer: tagWithScope("spirit", ["rule", "transformer"]),
@@ -13,6 +15,8 @@ export TAGS = {
 
 export log = {
   vfile: env(TAGS.vfile),
+  vfileV: env(TAGS.vfileV),
+  vfileT: env(TAGS.vfileT),
   rule: env(TAGS.rule),
   validator: env(TAGS.validator),
   transformer: env(TAGS.transformer),

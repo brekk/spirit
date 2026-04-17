@@ -30,7 +30,9 @@ main = () => {
   myVFile = VFile.vfileWithState(
     SOURCE,
     [
-      Rule.BodyRule(
+      Rule.Rule(
+        Rule.BodyRule,
+        false,
         "ensure-header",
         [
           Rule.BodyValidator(
@@ -45,14 +47,11 @@ main = () => {
         [],
         [],
       ),
-      Rule.LineRule(
+      Rule.Rule(
+        Rule.LineRule,
+        false,
         "ensure-headmarker",
-        [
-          ,
-        // Rule.LineValidator(
-        //   (meta, lineNum, line) => IO.pTrace("   → headmarker", !Fn.equals("---", line)),
-        // ),
-        ],
+        [],
         [
           Rule.LineTransformer(
             (meta, lineNum, currentLine) => String.replace("madlib", "_madlib_", currentLine),

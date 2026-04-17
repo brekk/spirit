@@ -2,7 +2,7 @@ import type { Maybe } from "Maybe"
 import type { Wish } from "Wish"
 
 import type { VFileError } from "@/Errors"
-import type { BodyTransformer, BodyValidator, LineTransformer, LineValidator, Rule } from "@/Rule"
+import type { Rule, Transformer, Validator } from "@/Rule"
 
 import File from "File"
 import Path from "FilePath"
@@ -39,8 +39,8 @@ export hasNoRemainingLineRules = pipe(
   Fn.equals(0),
 )
 
-transform :: a -> Integer -> String -> List (LineTransformer a) -> String
-transform = (meta, index, raw, trs) => {
+transformLines :: a -> Integer -> String -> List (Transformer a) -> String
+transformLines = (meta, index, raw, trs) => {
   helper = (current, steps) => where(steps) {
     [] =>
       current
@@ -49,54 +49,58 @@ transform = (meta, index, raw, trs) => {
       where(stepM) {
         Rule.LineTransformer(step) =>
           helper(step(meta, index, current), rest)
+
+        Rule.BodyTransformer(_) =>
+          helper(current, rest)
       }
   }
   return helper(raw, trs)
 }
 
 recursivelyProcessRules :: List (Rule a) -> Integer -> String -> a -> LoopState -> VFileLine
-recursivelyProcessRules = (rules, index, line, state, loopState) => if (
-  loopState.done || hasNoRemainingLineRules(rules)
-) {
-  where(loopState.failReason) {
-    Just(whyFail) =>
-      log.line(
-        "fail " ++ show(index),
-        (loopState.valid ? ValidLine(index, line) : InvalidLine(index, whyFail)),
-      )
+recursivelyProcessRules = (rules, index, line, state, loopState) => {
+  applyAgain = (rule, rest) => where(rule) {
+    Rule.Rule(Rule.LineRule, fixable, id, validators, transformers, _) =>
+      do {
+        lineValid = List.all(Rule.validateLine(state, index, line), validators)
+        valid = loopState.valid && lineValid
+        failReason = !lineValid ? Just(Errors.DynamicError(id, index)) : loopState.failReason
+        // transform = (meta, index, raw, trs) => {
+        newLine = valid ? transformLines(state, index, line, transformers) : line
+        // next we should actually apply a transform
+        // we also need to handle passing along state
+        return recursivelyProcessRules(
+          rest,
+          index,
+          newLine,
+          state,
+          { ...loopState, valid, failReason },
+        )
+      }
 
     _ =>
-      ValidLine(index, line)
+      // skip body rules, they get processed upstream
+      recursivelyProcessRules(rest, index, line, state, loopState)
   }
-} else {
-  where(rules) {
-    [] =>
-      recursivelyProcessRules([], index, line, state, loopState)
+  return if (loopState.done || hasNoRemainingLineRules(rules)) {
+    where(loopState.failReason) {
+      Just(whyFail) =>
+        log.line(
+          "fail " ++ show(index),
+          (loopState.valid ? ValidLine(index, line) : InvalidLine(index, whyFail)),
+        )
 
-    [rule, ...rest] =>
-      where(rule) {
-        Rule.BodyRule(_, _, _, _) =>
-          // skip body rules, they get processed upstream
-          recursivelyProcessRules(rest, index, line, state, loopState)
+      _ =>
+        ValidLine(index, line)
+    }
+  } else {
+    where(rules) {
+      [] =>
+        recursivelyProcessRules([], index, line, state, loopState)
 
-        Rule.LineRule(id, validators, transformers, _) =>
-          do {
-            lineValid = List.all(Rule.validateLine(state, index, line), validators)
-            valid = loopState.valid && lineValid
-            failReason = !lineValid ? Just(Errors.DynamicError(id, index)) : loopState.failReason
-            // transform = (meta, index, raw, trs) => {
-            newLine = valid ? transform(state, index, line, transformers) : line
-            // next we should actually apply a transform
-            // we also need to handle passing along state
-            return recursivelyProcessRules(
-              rest,
-              index,
-              newLine,
-              state,
-              { ...loopState, valid, failReason },
-            )
-          }
-      }
+      [rule, ...rest] =>
+        applyAgain(rule, rest)
+    }
   }
 }
 

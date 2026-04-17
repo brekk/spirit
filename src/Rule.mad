@@ -1,16 +1,60 @@
 import Fn from "Function"
+import List from "List"
+
+import { log } from "@/Log"
 
 
+
+trace = log.rule
+
+
+
+export type RuleAffect = BodyRule | LineRule
 
 alias NumberedLine = #[Integer, String]
 
-export type BodyValidator a = BodyValidator(a -> String -> Boolean)
-export type BodyTransformer a = BodyTransformer(a -> List NumberedLine -> List NumberedLine)
-export type BodyStateTransformer a = BodyStateTransformer(a -> List NumberedLine -> a)
+export type Validator a
+  = BodyValidator(a -> String -> Boolean)
+  | LineValidator(a -> Integer -> String -> Boolean)
 
-export type LineValidator a = LineValidator(a -> Integer -> String -> Boolean)
-export type LineTransformer a = LineTransformer(a -> Integer -> String -> String)
-export type LineStateTransformer a = LineStateTransformer(a -> Integer -> String -> a)
+isBodyValidator :: Validator a -> Boolean
+export isBodyValidator = where {
+  BodyValidator(_) =>
+    true
+
+  _ =>
+    false
+}
+
+export isLineValidator = Fn.complement(isBodyValidator)
+
+export type Transformer a
+  = BodyTransformer(a -> List NumberedLine -> List NumberedLine)
+  | LineTransformer(a -> Integer -> String -> String)
+
+isBodyTransformer :: Transformer a -> Boolean
+export isBodyTransformer = where {
+  BodyTransformer(_) =>
+    true
+
+  _ =>
+    false
+}
+export isLineTransformer = Fn.complement(isBodyTransformer)
+
+export type StateTransformer a
+  = BodyStateTransformer(a -> List NumberedLine -> a)
+  | LineStateTransformer(a -> Integer -> String -> a)
+
+isBodyStateTransformer :: StateTransformer a -> Boolean
+export isBodyStateTransformer = where {
+  BodyStateTransformer(_) =>
+    true
+
+  _ =>
+    false
+}
+export isLineStateTransformer = Fn.complement(isBodyStateTransformer)
 
 // a rule consists of validations
 // and transformers
@@ -22,41 +66,71 @@ alias Id = String
 
 // we need to eventually make rules "fixable"
 
+
 export type Rule a
-  = BodyRule(Id, List (BodyValidator a), List (BodyTransformer a), List (BodyStateTransformer a))
-  | LineRule(Id, List (LineValidator a), List (LineTransformer a), List (LineStateTransformer a))
+  = Rule(
+    // affect
+    RuleAffect,
+    // fixable
+    Boolean,
+    // id
+    Id,
+    // validators
+    List (Validator a),
+    // transformers
+    List (Transformer a),
+    // state transformers
+    List (StateTransformer a),
+  )
 
+export affect = where {
+  Rule(x, _, _, _, _, _) =>
+    x
+}
+export fixable = where {
+  Rule(_, x, _, _, _, _) =>
+    x
+}
 export id = where {
-  BodyRule(x, _, _, _) =>
+  Rule(_, _, x, _, _, _) =>
     x
-
-  LineRule(x, _, _, _) =>
+}
+export validators = where {
+  Rule(_, _, _, x, _, _) =>
+    x
+}
+export transformers = where {
+  Rule(_, _, _, _, x, _) =>
     x
 }
 
-export isBodyRule = where {
-  BodyRule(_, _, _, _) =>
-    true
-
-  _ =>
-    false
+export stateTransformers = where {
+  Rule(_, _, _, _, _, x) =>
+    x
 }
+select = (fn, filter) => pipe(
+  fn,
+  List.filter(filter),
+)
+
+export bodyValidators = select(validators, isBodyValidator)
+export lineValidators = select(validators, isLineValidator)
+export bodyTransformers = select(transformers, isBodyTransformer)
+export lineTransformers = select(transformers, isLineTransformer)
+export bodyStateTransformers = select(stateTransformers, isBodyStateTransformer)
+export lineStateTransformers = select(stateTransformers, isLineStateTransformer)
+
+export isBodyRule = pipe(
+  affect,
+  Fn.equals(BodyRule),
+)
 export isLineRule = Fn.complement(isBodyRule)
 
-validateLine :: a -> Integer -> String -> LineValidator a -> Boolean
+validateLine :: a -> Integer -> String -> Validator a -> Boolean
 export validateLine = (meta, lineNum, currentLine, check) => where(check) {
   LineValidator(runner) =>
     runner(meta, lineNum, currentLine)
-}
 
-transformLine :: a -> Integer -> String -> LineTransformer a -> String
-export transformLine = (meta, lineNum, currentLine, go) => where(go) {
-  LineTransformer(fn) =>
-    fn(meta, lineNum, currentLine)
-}
-
-transformState :: a -> Integer -> String -> LineStateTransformer a -> a
-export transformState = (meta, lineNum, currentLine, go) => where(go) {
-  LineStateTransformer(fn) =>
-    fn(meta, lineNum, currentLine)
+  _ =>
+    false
 }
