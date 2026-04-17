@@ -48,11 +48,16 @@ main = () => {
       Rule.LineRule(
         "ensure-headmarker",
         [
-          Rule.LineValidator(
-            (meta, lineNum, line) => IO.pTrace("   → headmarker", !Fn.equals("---", line)),
+          ,
+        // Rule.LineValidator(
+        //   (meta, lineNum, line) => IO.pTrace("   → headmarker", !Fn.equals("---", line)),
+        // ),
+        ],
+        [
+          Rule.LineTransformer(
+            (meta, lineNum, currentLine) => String.replace("madlib", "_madlib_", currentLine),
           ),
         ],
-        [],
         [],
       ),
     ],

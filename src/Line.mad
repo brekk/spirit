@@ -39,6 +39,21 @@ export hasNoRemainingLineRules = pipe(
   Fn.equals(0),
 )
 
+transform :: a -> Integer -> String -> List (LineTransformer a) -> String
+transform = (meta, index, raw, trs) => {
+  helper = (current, steps) => where(steps) {
+    [] =>
+      current
+
+    [stepM, ...rest] =>
+      where(stepM) {
+        Rule.LineTransformer(step) =>
+          helper(step(meta, index, current), rest)
+      }
+  }
+  return helper(raw, trs)
+}
+
 recursivelyProcessRules :: List (Rule a) -> Integer -> String -> a -> LoopState -> VFileLine
 recursivelyProcessRules = (rules, index, line, state, loopState) => if (
   loopState.done || hasNoRemainingLineRules(rules)
@@ -69,12 +84,14 @@ recursivelyProcessRules = (rules, index, line, state, loopState) => if (
             lineValid = List.all(Rule.validateLine(state, index, line), validators)
             valid = loopState.valid && lineValid
             failReason = !lineValid ? Just(Errors.DynamicError(id, index)) : loopState.failReason
+            // transform = (meta, index, raw, trs) => {
+            newLine = valid ? transform(state, index, line, transformers) : line
             // next we should actually apply a transform
             // we also need to handle passing along state
             return recursivelyProcessRules(
               rest,
               index,
-              line,
+              newLine,
               state,
               { ...loopState, valid, failReason },
             )
