@@ -143,25 +143,29 @@ processBodyStateRules = (state, transformers, body) => {
 }
 
 modifyBodyByRules :: List (Rule a) -> a -> String -> List VFileLine
-export modifyBodyByRules = (rules, state, body) => pipe(
-  bodyToNumberedLines,
-  processBodyRules(
-    state,
-    pipe(
-      List.filter(Rule.isBodyRule),
-      chain(
-        where {
-          Rule.BodyRule(_, _, trans, _) =>
-            trans
+export modifyBodyByRules = (rules, state, body) => {
+  bodyRules = pipe(
+    List.filter(Rule.isBodyRule),
+    chain(
+      where {
+        Rule.BodyRule(_, _, trans, _) =>
+          trans
 
-          _ =>
-            []
-        },
-      ),
-    )(rules),
-  ),
-  accumulate(Line.processRules(rules, state)),
-)(body)
+        _ =>
+          []
+      },
+    ),
+  )(rules)
+  return pipe(
+    bodyToNumberedLines,
+    processBodyRules(state, bodyRules),
+    // processBodyStateRules(
+    // state,
+    // bodyRules
+    // ),
+    accumulate(Line.processRules(rules, state)),
+  )(body)
+}
 
 vfileWithState :: String -> List (Rule a) -> a -> Wish VFileError (ConcreteFile (List VFileLine))
 export vfileWithState = (src, rules, state) => pipe(

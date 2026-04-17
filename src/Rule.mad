@@ -26,6 +26,14 @@ export type Rule a
   = BodyRule(Id, List (BodyValidator a), List (BodyTransformer a), List (BodyStateTransformer a))
   | LineRule(Id, List (LineValidator a), List (LineTransformer a), List (LineStateTransformer a))
 
+export id = where {
+  BodyRule(x, _, _, _) =>
+    x
+
+  LineRule(x, _, _, _) =>
+    x
+}
+
 export isBodyRule = where {
   BodyRule(_, _, _, _) =>
     true
