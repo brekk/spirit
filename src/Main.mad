@@ -28,7 +28,7 @@ fillfull = (badMsg, goodMsg, wish) => Wish.fulfill(
 )
 
 
-SOURCE = "./README.md"
+SOURCE = "./readme-before-spirit-gum.md"
 INITIAL_STATE = { hasTitle: false, hasTypes: false, types: [], constructors: [] }
 
 capitalize = (str) => where(String.toList(str)) {
@@ -75,7 +75,7 @@ headingSlug = (meta, index, line) => {
 
 linkFiles = (meta, index, line) => Fn.when(
   String.match(REGEX.CAPTURING.MADLIB_FILE),
-  String.replace(REGEX.CAPTURING.MADLIB_FILE, "[$1.mad](./blob/main/src/$1.mad)"),
+  String.replace(REGEX.CAPTURING.MADLIB_FILE, "[$1.mad](/blob/main/src/$1.mad)"),
 )(line)
 
 stringAppend = (a, b) => a ++ b
@@ -140,8 +140,9 @@ main = () => {
     ),
     chain(
       pipe(
-        File.write("./readme2.md"),
+        File.write("./README.md"),
         VFile.forceVFileError,
+        map(Fn.always("Updated README!")),
       ),
     ),
     fillfull("Barf!", "Yay!"),
