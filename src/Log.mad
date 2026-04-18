@@ -2,7 +2,7 @@ import { env, tagWithScope } from "PartyBus"
 
 
 
-export BASE = "spirit"
+export BASE = "spirit-gum"
 export E = {
   VFILE: "vfile",
   VALIDATOR: "validation",

@@ -1,6 +1,6 @@
-# spirit
+# spirit-gum
 
-virtual files in madlib
+fugacious files in madlib
 
 ## types
 
