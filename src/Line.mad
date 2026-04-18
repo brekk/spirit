@@ -119,6 +119,7 @@ recursivelyProcessRules = (index, line, state, loopState, rules) => if (
 
         Rule.Rule(_, _, id, _, _) =>
           // skip body rules, they get processed upstream
+
           recursivelyProcessRules(index, line, state, loopState, rest)
       }
   }
