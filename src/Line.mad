@@ -86,58 +86,52 @@ validOrEmptyLine = (idx, x) => x == "" ? EmptyLine(idx) : ValidLine(idx, x)
 processRules :: List (Rule a) -> a -> #[Integer, String] -> #[a, VFileLine]
 export processRules = (orules, ostate, olineTuple) => {
   recurseRules :: Integer -> String -> a -> LoopState -> List (Rule a) -> #[a, VFileLine]
-  recurseRules = (index, line, state, loopState, rules) => pipe(
-    log.line(show(state)),
-  )(
-    if (loopState.done || hasNoRemainingLineRules(rules)) {
-      where(loopState.failReason) {
-        Just(whyFail) =>
-          #[state, (loopState.valid ? validOrEmptyLine(index, line) : InvalidLine(index, whyFail))]
+  recurseRules = (index, line, state, loopState, rules) => if (
+    loopState.done || hasNoRemainingLineRules(rules)
+  ) {
+    where(loopState.failReason) {
+      Just(whyFail) =>
+        #[state, (loopState.valid ? validOrEmptyLine(index, line) : InvalidLine(index, whyFail))]
 
-        _ =>
-          #[state, validOrEmptyLine(index, line)]
-      }
-    } else {
-      where(rules) {
-        [] =>
-          recurseRules(index, line, state, loopState, [])
+      _ =>
+        #[state, validOrEmptyLine(index, line)]
+    }
+  } else {
+    where(rules) {
+      [] =>
+        recurseRules(index, line, state, loopState, [])
 
-        [rule, ...rest] =>
-          where(rule) {
-            Rule.Rule(Rule.LineRule, fixable, id, validators, transformers) =>
-              do {
-                // TODO: should we capture the id of failing rules here?
-                lineValid = List.all(Rule.validateLine(state, index, line), validators)
-                valid = loopState.valid && lineValid
-                failReason = !lineValid
-                  ? Just(Errors.DynamicError(id, index))
-                  : loopState.failReason
-                lineTuple = valid
-                  ? transformLines(state, index, line, transformers)
-                  : #[state, line]
-                return where(lineTuple) {
-                  #[finalState, newLine] =>
-                    log.lineR(
-                      id,
-                      recurseRules(
-                        index,
-                        newLine,
-                        finalState,
-                        { ...loopState, valid, failReason },
-                        rest,
-                      ),
-                    )
-                }
+      [rule, ...rest] =>
+        where(rule) {
+          Rule.Rule(Rule.LineRule, fixable, id, validators, transformers) =>
+            do {
+              // TODO: should we capture the id of failing rules here?
+              lineValid = List.all(Rule.validateLine(state, index, line), validators)
+              valid = loopState.valid && lineValid
+              failReason = !lineValid ? Just(Errors.DynamicError(id, index)) : loopState.failReason
+              lineTuple = valid ? transformLines(state, index, line, transformers) : #[state, line]
+              return where(lineTuple) {
+                #[finalState, newLine] =>
+                  log.lineR(
+                    id,
+                    recurseRules(
+                      index,
+                      newLine,
+                      finalState,
+                      { ...loopState, valid, failReason },
+                      rest,
+                    ),
+                  )
               }
+            }
 
-            Rule.Rule(_, _, id, _, _) =>
-              // skip body rules, they get processed upstream
+          Rule.Rule(_, _, id, _, _) =>
+            // skip body rules, they get processed upstream
 
-              recurseRules(index, line, state, loopState, rest)
-          }
-      }
-    },
-  )
+            recurseRules(index, line, state, loopState, rest)
+        }
+    }
+  }
   return where(olineTuple) {
     #[oindex, oline] =>
       log.line(
