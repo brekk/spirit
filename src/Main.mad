@@ -41,7 +41,7 @@ capitalize = (str) => where(String.toList(str)) {
 
 REGEX = {
   NON_WORD_AND_SPACES: "[\\W\\s]",
-  CAPTURING: { HEADING: "^(#*)\\s*(.*)", MADLIB_FILE: "([\\w\\.]*).mad", LIST_ITEM: " - (\\w*)" },
+  CAPTURING: { HEADING: "^(#*)\\s*(.*)", MADLIB_FILE: "([\\w\\.]*)\\.mad", LIST_ITEM: " - (\\w*)" },
 }
 
 slug = pipe(
@@ -52,9 +52,9 @@ slug = pipe(
 )
 
 headingSlug = (meta, index, line) => {
-  isHeading = String.startsWith("#", line)
-  // there might be a cleaner way of expressing this
-  clean = isHeading
+  isNotFirstHeading = Fn.both(String.startsWith("##"), String.startsWith("#"), line)
+  // there might be a cleaner way of expressing this regexery
+  clean = isNotFirstHeading
     ? pipe(
       String.replace(REGEX.CAPTURING.HEADING, "$1<>$2"),
       String.split("<>"),
