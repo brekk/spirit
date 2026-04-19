@@ -2,8 +2,9 @@ alias NumberedLine = #[Integer, String]
 
 export type Transformer a
   = BodyTransformer(a -> List NumberedLine -> List NumberedLine)
-  | LineTransformer(a -> Integer -> String -> String)
   | BodyStateTransformer(a -> List NumberedLine -> a)
+  | BodyRawTransformer(a -> List NumberedLine -> #[a, List NumberedLine])
+  | LineTransformer(a -> Integer -> String -> String)
   | LineStateTransformer(a -> Integer -> String -> a)
   | LineRawTransformer(a -> Integer -> String -> #[a, String])
 
@@ -44,6 +45,15 @@ export isLineState = where {
 isLineRaw :: Transformer a -> Boolean
 export isLineRaw = where {
   LineRawTransformer(_) =>
+    true
+
+  _ =>
+    false
+}
+
+isBodyRaw :: Transformer a -> Boolean
+export isBodyRaw = where {
+  BodyRawTransformer(_) =>
     true
 
   _ =>

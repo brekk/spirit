@@ -135,8 +135,6 @@ export processRules = (orules, ostate, olineTuple) => {
             }
 
           Rule.Rule(_, _, id, _, _) =>
-            // skip body rules, they get processed upstream
-
             recurseRules(index, line, state, loopState, rest)
         }
     }

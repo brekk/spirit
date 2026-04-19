@@ -111,6 +111,12 @@ processBodyTransformers = (state, transformers, body) => {
         Transformer.BodyStateTransformer(fn) =>
           helper(fn(newState, numBod), numBod, rest)
 
+        Transformer.BodyRawTransformer(fn) =>
+          where(fn(newState, numBod)) {
+            #[newnewState, bodbod] =>
+              helper(newnewState, bodbod, rest)
+          }
+
         _ =>
           // skip line transformers
           helper(newState, numBod, rest)
